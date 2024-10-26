@@ -64,7 +64,7 @@ namespace baseBot
         {
 			var config = new DiscordConfiguration
 			{
-				Token = "MTI5OTgzNDAyOTk4OTgyNjYyMA.GvPZlO.WVJwTr2yX-AAPqstLWilp1SmKRC_QSAplBF7xg", //obtenu sur le developepr website de discord
+				Token = "MTI5OTgzNDAyOTk4OTgyNjYyMA.GfsKbH.FXUTzUyi90PeTnTggVBWhPQ23FFmJC3hzxSL8Y", //obtenu sur le developepr website de discord
 				TokenType = TokenType.Bot,
 				AutoReconnect = true,
 				Intents = DiscordIntents.All,
