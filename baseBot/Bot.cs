@@ -6,8 +6,8 @@ namespace baseBot
     public class Bot
     {
         public static DiscordClient Client { get; private set; }
-		public static AppData AppData { get; set; }
-		public static ManageDB ManageDB { get; set; }
+		public static AppData AppData { get; set; } = new AppData();
+		public static ManageDB ManageDB { get; set; } = new ManageDB();
 		public CommandsNextExtension Commands { get; private set; }
 		CancellationTokenSource _cts = new CancellationTokenSource();
 
@@ -64,7 +64,7 @@ namespace baseBot
         {
 			var config = new DiscordConfiguration
 			{
-				Token = "discord TOKEN", //obtenu sur le developepr website de discord
+				Token = "MTI5OTgzNDAyOTk4OTgyNjYyMA.GvPZlO.WVJwTr2yX-AAPqstLWilp1SmKRC_QSAplBF7xg", //obtenu sur le developepr website de discord
 				TokenType = TokenType.Bot,
 				AutoReconnect = true,
 				Intents = DiscordIntents.All,

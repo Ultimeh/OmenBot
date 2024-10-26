@@ -6,6 +6,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
 	<IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
 	<EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+	  <AssemblyName>Omen Bot</AssemblyName>
+	  <Product>Omen Bot</Product>
+	  <PackageId>Omen Bot</PackageId>
   </PropertyGroup>
 
   <ItemGroup>
