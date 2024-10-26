@@ -17,8 +17,6 @@ namespace baseBot
 
 			try
 			{
-				ManageDB.LoadList();
-
 				await Client.ConnectAsync(); //connection a Discord
 				Console.WriteLine("Connected: Bot is ready." + Environment.NewLine);
 			}
@@ -62,6 +60,8 @@ namespace baseBot
 
 		private void SetupClient()
         {
+			ManageDB.LoadList();
+
 			var config = new DiscordConfiguration
 			{
 				Token = AppData.token, //obtenu sur le developepr website de discord
