@@ -7,10 +7,10 @@ using System.Threading.Tasks;
 
 namespace baseBot
 {
-	class AppData
+	public class AppData
 	{
 		//public string aide = "";
-
+		public Dictionary<string, int> UserList { get; set; } = new Dictionary<string, int>();
 		//private List<data> _data = new List<data>();
 		//public List<data> data { get { return _data; } set { _data = value; } }
 	}

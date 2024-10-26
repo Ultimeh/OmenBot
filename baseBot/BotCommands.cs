@@ -1,29 +1,14 @@
 ﻿using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
-using DSharpPlus.Entities;
 
-namespace frcqBot
+namespace baseBot
 {
     public class BotCommands : BaseCommandModule
     {
-		//example de commands de base
-		// await ctx.Member.SendMessageAsync("test", null);  PM message
-		//await ctx.Channel.SendMessageAsync(ctx.Member.DisplayName + ": " + "non"); message channel
-
-        // avoir un autre channel pour send msg dans autre channel que le CTX,
-		//var channel = ctx.Client.GetChannelAsync(Discordt channel ID);
-        //await ctx.Client.SendMessageAsync(channel, "message");
-
-		[Command("aide")]
-        [Description("Liste des commandes en PM")]
-        public async Task aide(CommandContext ctx)
-        {
-            if (ctx.Channel.Id == 691207717842321409 || ctx.Channel.Id == 908802539519103007) await ctx.Member.SendMessageAsync("test", null);
-            if (ctx.Channel.Id == 812138366237278270) await ctx.Member.SendMessageAsync("test", null);
-        }
+		private static readonly Random random = new Random();
 
         [Command("purges")]
-        [Description("pour supprimer des messages en masse")]
+        [Description("Deletes messages")]
         public async Task purge(CommandContext ctx, int del)
         {
             if (ctx.Channel.Id == 803487353288917010 || ctx.Channel.Id == 812138366237278270 || ctx.Channel.Id == 691207717842321409 || ctx.Channel.Id == 908802539519103007)
@@ -33,27 +18,114 @@ namespace frcqBot
             }
         }
 
-		[Command("pass")]
-        [Description("add passenger entry")]
-        public async Task addPass(CommandContext ctx, [Description("System")] string sys, [Description("inf")] string infs, [RemainingText, Description("faction")] string faction)
+		[Command("add")]
+        [Description("add new user")]
+        public async Task AddUser(CommandContext ctx, [RemainingText, Description("UserName")] string name)
         {
 			if (ctx.Channel.Id != 691207717842321409) return;
+            if (string.IsNullOrEmpty(name)) return;
 
-			if (string.IsNullOrEmpty(faction))
-			{
-				await ctx.Channel.SendMessageAsync(ctx.Member.DisplayName + ": " + "non");
+            Bot.AppData.UserList.Add(name, 0);
+			Bot.ManageDB.SaveList();
+
+			await ctx.Channel.SendMessageAsync($"Added user: {name}.");
+		}
+
+		[Command("del")]
+		[Description("remove user")]
+		public async Task DelUser(CommandContext ctx, [RemainingText, Description("UserName")] string name)
+		{
+			if (ctx.Channel.Id != 691207717842321409) return;
+			if (string.IsNullOrEmpty(name)) return;
+
+            foreach (var item in Bot.AppData.UserList.ToArray())
+            {
+                if (item.Key.Equals(name, StringComparison.OrdinalIgnoreCase))
+                {
+					Bot.AppData.UserList.Remove(item.Key);
+					Bot.ManageDB.SaveList();
+
+					await ctx.Channel.SendMessageAsync($"User removed: {name}.");
+                    return;
+				}
+            }
+
+			await ctx.Channel.SendMessageAsync($"User: {name} not found.");
+		}
+
+		[Command("list")]
+		[Description("Show the current list")]
+		public async Task UserList(CommandContext ctx)
+		{
+			if (ctx.Channel.Id != 691207717842321409) return;
+
+			if (Bot.AppData.UserList.Count == 0)
+            {
+				await ctx.Channel.SendMessageAsync("User list is empty.");
 				return;
 			}
 
-			if (!int.TryParse(infs, out int inf))
+			List<string> prepareList = new List<string>();
+
+			foreach (var item in Bot.AppData.UserList)
 			{
-				await ctx.Channel.SendMessageAsync(ctx.Member.DisplayName + ": " + "non");
+				prepareList.Add(item.Key +  $" Win count: {item.Value}");
+			}
+
+			var message = string.Join(Environment.NewLine, prepareList);
+			await ctx.Channel.SendMessageAsync("```" + message + "```");
+		}
+
+		[Command("draw")]
+		[Description("draw users to win")]
+		public async Task Draw(CommandContext ctx, [Description("Count")] int count = 1)
+		{
+			if (ctx.Channel.Id != 691207717842321409) return;
+
+			if (count < 1)
+			{
+				await ctx.Channel.SendMessageAsync("The coutn need to be higher than 0.");
 				return;
 			}
 
-			// tache a faire avec les info recu (a été enlever pour example de commande)
+			var keys = Bot.AppData.UserList.Keys.ToList();
+			count = Math.Min(count, keys.Count);
+
+			for (int i = keys.Count - 1; i > 0; i--)
+			{
+				int j = random.Next(0, i + 1); // Pick a random index
+				(keys[i], keys[j]) = (keys[j], keys[i]); // Swap elements
+			}
+
+			var randomKeys = keys.Take(count).ToList();
+			List<string> values = new List<string>();
+
+			foreach (var key in randomKeys)
+			{
+				Bot.AppData.UserList[key]++;
+				values.Add(key);
+			}
+
+			Bot.ManageDB.SaveList();
+
+			var message = string.Join(Environment.NewLine, values);
+			await ctx.Channel.SendMessageAsync($"The {count} random winner(s):" + Environment.NewLine + "```" + message + "```");
+		}
+
+		[Command("reset")]
+		[Description("reset wins for all users")]
+		public async Task Reset(CommandContext ctx)
+		{
+			if (ctx.Channel.Id != 691207717842321409) return;
 			
-			await ctx.Channel.SendMessageAsync(ctx.Member.DisplayName + ": " + "message");
+			foreach (var key in Bot.AppData.UserList.Keys.ToArray())
+			{
+				Bot.AppData.UserList[key] = 0;
+			}
+
+			Bot.ManageDB.SaveList();
+
+			await ctx.Channel.SendMessageAsync("All Win counts reset to 0.");
 		}
 	}
 }

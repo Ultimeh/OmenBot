@@ -1,6 +1,4 @@
-﻿using baseBot;
-
-namespace frcqBot
+﻿namespace baseBot
 {
     class Program
     {
