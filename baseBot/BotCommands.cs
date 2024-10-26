@@ -35,16 +35,18 @@ namespace baseBot
 
 		[Command("add")]
         [Description("add new user")]
-        public async Task AddUser(CommandContext ctx, [RemainingText, Description("UserName")] string name)
+        public async Task AddUser(CommandContext ctx, [Description("UserName")] string name)
         {
 			if (!CheckRights(ctx)) return;
-
 			if (string.IsNullOrEmpty(name)) return;
 
-			if (Bot.AppData.UserList.ContainsKey(name))
+			foreach (var key in Bot.AppData.UserList.Keys)
 			{
-				await ctx.Channel.SendMessageAsync($"user: {name} is already in the list.");
-				return;
+				if (string.Equals(key, name, StringComparison.OrdinalIgnoreCase))
+				{
+					await ctx.Channel.SendMessageAsync($"user: {name} is already in the list.");
+					return;
+				}
 			}
 
 			Bot.AppData.UserList.Add(name, 0);
@@ -55,7 +57,7 @@ namespace baseBot
 
 		[Command("del")]
 		[Description("remove user")]
-		public async Task DelUser(CommandContext ctx, [RemainingText, Description("UserName")] string name)
+		public async Task DelUser(CommandContext ctx, [Description("UserName")] string name)
 		{
 			if (!CheckRights(ctx)) return;
 
