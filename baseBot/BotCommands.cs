@@ -1,5 +1,6 @@
 ﻿using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
+using Newtonsoft.Json.Linq;
 
 namespace baseBot
 {
@@ -9,6 +10,7 @@ namespace baseBot
 		private static readonly ulong channelID = 1299832478286090322;
 		private static readonly ulong vexID = 114587845716344834;
 		private static readonly ulong rekenID = 158460782445723658;
+		private static readonly ulong maligozeID = 142830810809106432;
 		private static readonly ulong ultimeID = 337741216466862080;
 
 		[Command("help")]
@@ -34,48 +36,60 @@ namespace baseBot
 		}
 
 		[Command("add")]
-        [Description("add new user")]
-        public async Task AddUser(CommandContext ctx, [Description("UserName")] string name)
+		[Description("add new user")]
+		public async Task AddUser(CommandContext ctx, [Description("UserName")] string name, string role = "")
         {
 			if (!CheckRights(ctx)) return;
-			if (string.IsNullOrEmpty(name)) return;
+			if (string.IsNullOrWhiteSpace(name)) return;
 
-			foreach (var key in Bot.AppData.UserList.Keys)
+			if (string.IsNullOrWhiteSpace(role))
 			{
-				if (string.Equals(key, name, StringComparison.OrdinalIgnoreCase))
+				await ctx.Channel.SendMessageAsync($"You must set a role to create a user: '!add {name} role");
+				return;
+			}
+
+			role = role.ToLower();
+
+			if (!Bot.AppData.Roles.Contains(role))
+			{
+				await ctx.Channel.SendMessageAsync($"Invalid Role (accepted roles: tank, healer, melee, range, melee/range)");
+				return;
+			}
+
+			foreach(var item in Bot.AppData.OmenList)
+			{
+				if (name.ToLower() == item.Name.ToLower())
 				{
 					await ctx.Channel.SendMessageAsync($"user: {name} is already in the list.");
 					return;
 				}
 			}
 
-			Bot.AppData.UserList.Add(name, 0);
-			Bot.ManageDB.SaveList();
+			Bot.AppData.OmenList.Add(new Users { Name = name, Role = role });
 
+			Bot.ManageDB.SaveList();
 			await ctx.Channel.SendMessageAsync($"Added user: {name}.");
 		}
 
 		[Command("del")]
 		[Description("remove user")]
-		public async Task DelUser(CommandContext ctx, [Description("UserName")] string name)
+		public async Task DelUser(CommandContext ctx, [Description("UserName")] string name = "")
 		{
 			if (!CheckRights(ctx)) return;
-
 			if (string.IsNullOrEmpty(name)) return;
 
-            foreach (var item in Bot.AppData.UserList.ToArray())
-            {
-                if (item.Key.Equals(name, StringComparison.OrdinalIgnoreCase))
-                {
-					Bot.AppData.UserList.Remove(item.Key);
+			foreach (var item in Bot.AppData.OmenList.ToArray())
+			{
+				if (name.ToLower() == item.Name.ToLower())
+				{
+					Bot.AppData.OmenList.Remove(item);
 					Bot.ManageDB.SaveList();
-
 					await ctx.Channel.SendMessageAsync($"User removed: {name}.");
-                    return;
+					return;
 				}
-            }
+			}
 
-			await ctx.Channel.SendMessageAsync($"User: {name} not found.");
+			await ctx.Channel.SendMessageAsync($"User: {name} not found.");		
 		}
 
 		[Command("list")]
@@ -84,7 +98,7 @@ namespace baseBot
 		{
 			if (!CheckRights(ctx)) return;
 
-			if (Bot.AppData.UserList.Count == 0)
+			if (Bot.AppData.OmenList.Count == 0)
             {
 				await ctx.Channel.SendMessageAsync("User list is empty.");
 				return;
@@ -92,9 +106,9 @@ namespace baseBot
 
 			List<string> prepareList = new List<string>();
 
-			foreach (var item in Bot.AppData.UserList)
+			foreach (var item in Bot.AppData.OmenList)
 			{
-				prepareList.Add(item.Key +  $" (Win count: {item.Value})");
+				prepareList.Add(item.Name +  $" (Win count: {item.WinCount})");
 			}
 
 			var message = string.Join(Environment.NewLine, prepareList);
@@ -109,28 +123,28 @@ namespace baseBot
 
 			if (count < 1)
 			{
-				await ctx.Channel.SendMessageAsync("The coutn need to be higher than 0.");
+				await ctx.Channel.SendMessageAsync("The count need to be higher than 0.");
 				return;
 			}
 
-			var keys = Bot.AppData.UserList.Keys.ToList();
-			count = Math.Min(count, keys.Count);
+			var userList = new List<Users>(Bot.AppData.OmenList);
+			count = Math.Min(count, userList.Count);
 
-
-			for (int i = keys.Count - 1; i >= 0; i--) // Shuffle the keys
+			for (int i = userList.Count - 1; i >= 0; i--) // Shuffle the keys
 			{
 				int j = random.Next(0, i + 1); // Pick a random index
-				(keys[i], keys[j]) = (keys[j], keys[i]); // Swap elements
+				(userList[i], userList[j]) = (userList[j], userList[i]); // Swap elements
 			}
 
-			var randomKeys = keys.Take(count).ToList();
+			var randomPick = userList.Take(count).ToList();
 
 			List<string> values = new List<string>();
 
-			foreach (var key in randomKeys)
+			foreach (var item in randomPick)
 			{
-				Bot.AppData.UserList[key]++;
-				values.Add(key);
+				var index = Bot.AppData.OmenList.IndexOf(item);
+				Bot.AppData.OmenList[index].WinCount++;
+				values.Add(item.Name);
 			}
 
 			Bot.ManageDB.SaveList();
@@ -145,19 +159,77 @@ namespace baseBot
 		{
 			if (!CheckRights(ctx)) return;
 
-			foreach (var key in Bot.AppData.UserList.Keys.ToArray())
+			List<string> users = new List<string>();
+
+			foreach (var item in Bot.AppData.OmenList)
 			{
-				Bot.AppData.UserList[key] = 0;
+				users.Add(item.Name);
 			}
 
 			Bot.ManageDB.SaveList();
-
 			await ctx.Channel.SendMessageAsync("All Win counts reset to 0.");
+		}
+
+		[Command("role")]
+		[Description("display all user with given role")]
+		public async Task Reset(CommandContext ctx, [Description("Role")] string role = "")
+		{
+			if (!CheckRights(ctx)) return;
+
+			role = role.ToLower();
+
+			if (!Bot.AppData.Roles.Contains(role))
+			{
+				var roles = string.Join(", ", Bot.AppData.Roles);
+				await ctx.Channel.SendMessageAsync($"Invalid Role (accepted roles: {roles}");
+				return;
+			}
+
+			List<string> users = new List<string>();
+
+			foreach (var item in Bot.AppData.OmenList)
+			{
+				if (item.Role.Contains(role)) users.Add(item.Name);
+			}
+
+			var message = string.Join(Environment.NewLine, users);
+			await ctx.Channel.SendMessageAsync($"User(s) with the role '{role}':" + Environment.NewLine + "```" + Environment.NewLine + message + Environment.NewLine + "```");
+		}
+
+		[Command("edit")]
+		[Description("change user role")]
+		public async Task EditRole(CommandContext ctx, [Description("UserName")] string name = "", [Description("Role")] string role = "")
+		{
+			if (!CheckRights(ctx)) return;
+			if (string.IsNullOrEmpty(name)) return;
+			if (string.IsNullOrEmpty(role)) return;
+
+			name = name.ToLower();
+			role = role.ToLower();
+
+			if (!Bot.AppData.Roles.Contains(role))
+			{
+				await ctx.Channel.SendMessageAsync($"Invalid Role (accepted roles: tank, healer, melee, range, melee/range)");
+				return;
+			}
+
+			foreach (var item in Bot.AppData.OmenList)
+			{
+				if (item.Name.ToLower() == name)
+				{
+					item.Role = role;
+					Bot.ManageDB.SaveList();
+					await ctx.Channel.SendMessageAsync($"{item.Name} role changed to '{role}'");
+					return;
+				}
+			}
+
+			await ctx.Channel.SendMessageAsync($"User: {name} not found.");
 		}
 
 		private bool CheckRights(CommandContext ctx)
 		{
-			if (ctx.Channel.Id == channelID && (ctx.User.Id == vexID || ctx.User.Id == rekenID || ctx.User.Id == ultimeID)) return true;
+			if (ctx.Channel.Id == channelID && (ctx.User.Id == vexID || ctx.User.Id == rekenID || ctx.User.Id == ultimeID || ctx.User.Id == maligozeID)) return true;
 			return false;
 		}
 	}
