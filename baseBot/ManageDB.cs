@@ -58,7 +58,7 @@ namespace baseBot
 
 			List<string> help = new List<string>();
 			help.Add("List or all commands for the Loot Bot:");
-			help.Add("(All accepted roles: tank, healer, melee, range, melee/range)");
+			help.Add("(All accepted roles: tank, healer, melee, range, m/r)");
 			help.Add("-------------------------------------------------------------");
 			help.Add("-Add new user: '!add name role' exemple: !add bob melee");
 			help.Add("-Delete existing user: '!del name' exemple: !del bob");	

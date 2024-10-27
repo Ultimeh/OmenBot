@@ -52,7 +52,7 @@ namespace baseBot
 
 			if (!Bot.AppData.Roles.Contains(role))
 			{
-				await ctx.Channel.SendMessageAsync($"Invalid Role (accepted roles: tank, healer, melee, range, melee/range)");
+				await ctx.Channel.SendMessageAsync("Invalid Role (accepted roles: tank, healer, melee, range, m/r)");
 				return;
 			}
 
@@ -106,13 +106,47 @@ namespace baseBot
 
 			List<string> prepareList = new List<string>();
 
+			int maxDiscordMessageLength = 2000 - 8;
+			int maxNameLength = Bot.AppData.OmenList.Max(item => item.Name.Length) + 1;  // Adding padding
+			int maxRoleLength = Bot.AppData.OmenList.Max(item => item.Role.Length) + 1;  // Adding padding
+
 			foreach (var item in Bot.AppData.OmenList)
 			{
-				prepareList.Add(item.Name +  $" (Win count: {item.WinCount})");
+				string formattedLine = $"{item.Name.PadRight(maxNameLength)} {item.Role.PadRight(maxRoleLength)} [{item.WinCount}]";
+				prepareList.Add(formattedLine);
+
 			}
 
-			var message = string.Join(Environment.NewLine, prepareList);
-			await ctx.Channel.SendMessageAsync("```" + Environment.NewLine + message + Environment.NewLine + "```");
+			var fullMessage = string.Join(Environment.NewLine, prepareList);
+
+			//await ctx.Channel.SendMessageAsync( $"{fullMessage.Length} caracters " );
+
+			var messagesToSend = new List<string>();
+
+			while (fullMessage.Length > maxDiscordMessageLength)
+			{
+				// Find the last newline character within the limit
+				int splitIndex = fullMessage.LastIndexOf('\n', maxDiscordMessageLength);
+				if (splitIndex == -1) splitIndex = maxDiscordMessageLength; // Fallback if no newline found
+
+				// Get the part of the message to send
+				messagesToSend.Add(fullMessage.Substring(0, splitIndex));
+
+				// Remove the sent part from the full message
+				fullMessage = fullMessage.Substring(splitIndex).Trim();
+			}
+
+			// Add any remaining message
+			if (fullMessage.Length > 0)
+			{
+				messagesToSend.Add(fullMessage);
+			}
+
+			// Now send each message in messagesToSend separately
+			foreach (var message in messagesToSend)
+			{
+				await ctx.Channel.SendMessageAsync("```" + Environment.NewLine + message + Environment.NewLine + "```");
+			}	
 		}
 
 		[Command("draw")]
@@ -159,11 +193,9 @@ namespace baseBot
 		{
 			if (!CheckRights(ctx)) return;
 
-			List<string> users = new List<string>();
-
 			foreach (var item in Bot.AppData.OmenList)
 			{
-				users.Add(item.Name);
+				item.WinCount = 0;
 			}
 
 			Bot.ManageDB.SaveList();
@@ -189,7 +221,8 @@ namespace baseBot
 
 			foreach (var item in Bot.AppData.OmenList)
 			{
-				if (item.Role.Contains(role)) users.Add(item.Name);
+				if (item.Role == role) users.Add(item.Name);
+				if (item.Role == "m/r" && (role == "melee" || role == "range")) users.Add(item.Name);
 			}
 
 			var message = string.Join(Environment.NewLine, users);
@@ -209,7 +242,7 @@ namespace baseBot
 
 			if (!Bot.AppData.Roles.Contains(role))
 			{
-				await ctx.Channel.SendMessageAsync($"Invalid Role (accepted roles: tank, healer, melee, range, melee/range)");
+				await ctx.Channel.SendMessageAsync("Invalid Role (accepted roles: tank, healer, melee, range, m/r)");
 				return;
 			}
 
