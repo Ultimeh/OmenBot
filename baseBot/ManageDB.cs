@@ -57,16 +57,19 @@ namespace baseBot
 			}
 
 			List<string> help = new List<string>();
-			help.Add("Add new user: '!add name role' exemple: !add bob melee (tank, healer, melee, range, melee/range)");
-			help.Add("Delete existing user: '!del name' exemple: !del bob");	
-			help.Add("Display users per Role: '!role role' exemple: !role tank (tank, healer, melee, range, melee/range)");
-			help.Add("Change user Role: '!edit name role' exemple: !edit bob healer (tank, healer, melee, range, melee/range)");
-			help.Add("Draw random user(s): '!draw number' exemple: !draw 2 ('!draw' without a number will be '1' by default)");
-			help.Add("Show all curent users and their win count: '!list'");
-			help.Add("Reset all Win counts to 0: '!reset'");
-			help.Add("Delete message(s): '!purges number' exemple: !purges 5");
+			help.Add("List or all commands for the Loot Bot:");
+			help.Add("(All accepted roles: tank, healer, melee, range, melee/range)");
+			help.Add("-------------------------------------------------------------");
+			help.Add("-Add new user: '!add name role' exemple: !add bob melee");
+			help.Add("-Delete existing user: '!del name' exemple: !del bob");	
+			help.Add("-Display users per Role: '!role role' exemple: !role tank");
+			help.Add("-Change user Role: '!edit name role' exemple: !edit bob healer");
+			help.Add("-Draw random user(s): '!draw number' exemple: !draw 2");
+			help.Add("-Show all curent users and their win count: '!list'");
+			help.Add("-Reset all Win counts to 0: '!reset'");
+			help.Add("-Delete message(s): '!purges number' exemple: !purges 5");
 
-			Bot.AppData.help = string.Join(Environment.NewLine, help);
+			Bot.AppData.help = "```" + Environment.NewLine + string.Join(Environment.NewLine, help) + Environment.NewLine + "```";
 		}
 
 		public void SaveList()
