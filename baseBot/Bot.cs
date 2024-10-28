@@ -1,5 +1,7 @@
 ﻿using DSharpPlus;
 using DSharpPlus.CommandsNext;
+using DSharpPlus.Entities;
+using DSharpPlus.EventArgs;
 
 namespace baseBot
 {
@@ -48,6 +50,8 @@ namespace baseBot
 		private void SetEvents()
 		{
 			Console.CancelKeyPress += CancelKey;  //ctrl + C
+			Client.GuildMemberAdded += Discord_GuildMemberAdded;
+			Client.GuildMemberRemoved += Client_GuildMemberRemoved;
 		}
 
 		private void CancelKey(object sender, ConsoleCancelEventArgs e)
@@ -73,6 +77,7 @@ namespace baseBot
 			Client = new DiscordClient(config);
 
 			Console.WriteLine("Bot is connecting to Discord ...");
+			//Client.UpdateCurrentUserAsync("botname")
 
 			var commandConfig = new CommandsNextConfiguration
 			{
@@ -85,6 +90,44 @@ namespace baseBot
 			//gere les commandes recu via discord
 			Commands = Client.UseCommandsNext(commandConfig);
 			Commands.RegisterCommands<BotCommands>();
+		}
+
+		private async Task Discord_GuildMemberAdded(DiscordClient sender, GuildMemberAddEventArgs e)
+		{
+			if (e.Member.IsBot) return;
+
+			var channel = await sender.GetChannelAsync(1289653768371310625);
+			var vexray = await Client.GetUserAsync(114587845716344834);
+			var advisor = e.Guild.GetRole(1289660706857287752);
+			var guardian = e.Guild.GetRole(1289656595747438652);
+
+			var message = "We are an anti-elitist and non-hardcore guild engaging in both PvE and PvP content, striving to do our best." + Environment.NewLine + "We welcome everyone with a similar mindset who is looking for a friendly and stress-free place." + Environment.NewLine +
+				          $"Feel free to contact our GM {vexray.Mention}, Advisors {advisor.Mention} or Guardians {guardian.Mention}.";
+
+			var embed = new DiscordEmbedBuilder()
+		   .WithDescription(message)
+		   .WithColor(new DiscordColor(191, 255, 0))
+		   .WithAuthor("Welcome to Omen!")
+		   .WithFooter(" 👋 " + e.Member.Username, e.Member.AvatarUrl);
+
+			await Task.Delay(150);
+			await channel.SendMessageAsync(e.Member.Mention, embed);
+		}
+
+		private async Task Client_GuildMemberRemoved(DiscordClient sender, GuildMemberRemoveEventArgs args)
+		{
+			if (args.Member.IsBot) return;
+
+			var guild = args.Guild;
+			var vexray = await guild.GetMemberAsync(114587845716344834);
+			var ultime = await guild.GetMemberAsync(337741216466862080);
+
+			var user = args.Member.Username;
+			var display = args.Member.DisplayName;
+			var message = $"UserName: {user}, DisplayName: {display} has left the server";
+
+			await ultime.SendMessageAsync(message);
+			await vexray.SendMessageAsync(message);
 		}
 	}
 }
