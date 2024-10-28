@@ -1,6 +1,5 @@
 ﻿using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
-using Newtonsoft.Json.Linq;
 
 namespace baseBot
 {
@@ -151,7 +150,7 @@ namespace baseBot
 
 		[Command("draw")]
 		[Description("draw users to win")]
-		public async Task Draw(CommandContext ctx, [Description("Count")] int count = 1)
+		public async Task Draw(CommandContext ctx, [Description("Count")] int count, [Description("role")] string role = "")
 		{
 			if (!CheckRights(ctx)) return;
 
@@ -161,7 +160,39 @@ namespace baseBot
 				return;
 			}
 
-			var userList = new List<Users>(Bot.AppData.OmenList);
+			var userList = new List<Users>();
+			string msg = "";
+
+			if (!string.IsNullOrWhiteSpace(role))
+			{
+				role = role.ToLower();
+
+				if (!Bot.AppData.Roles.Contains(role))
+				{
+					var roles = string.Join(", ", Bot.AppData.Roles);
+					await ctx.Channel.SendMessageAsync($"Invalid Role (accepted roles: {roles})");
+					return;
+				}
+
+				foreach (var item in Bot.AppData.OmenList)
+				{
+					if (item.Role == role) userList.Add(item);
+					msg = $"The {count} random winner(s) [{role}]:";
+				}
+			}
+
+			if (role == "") 
+			{
+				userList = Bot.AppData.OmenList;
+				msg = $"The {count} random winner(s):";
+			}
+
+			if (userList.Count == 0)
+			{
+				await ctx.Channel.SendMessageAsync($"No user with the role: {role}");
+				return;
+			}
+
 			count = Math.Min(count, userList.Count);
 
 			for (int i = userList.Count - 1; i >= 0; i--) // Shuffle the keys
@@ -184,7 +215,7 @@ namespace baseBot
 			Bot.ManageDB.SaveList();
 
 			var message = string.Join(Environment.NewLine, values);
-			await ctx.Channel.SendMessageAsync($"The {count} random winner(s):" + Environment.NewLine + "```" + Environment.NewLine + message + Environment.NewLine + "```");
+			await ctx.Channel.SendMessageAsync(msg + Environment.NewLine + "```" + Environment.NewLine + message + Environment.NewLine + "```");
 		}
 
 		[Command("reset")]

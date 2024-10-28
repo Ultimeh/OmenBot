@@ -1,7 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Security.Cryptography.X509Certificates;
-
-namespace baseBot
+﻿namespace baseBot
 {
 	public class AppData
 	{

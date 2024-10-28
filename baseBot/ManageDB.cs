@@ -65,6 +65,7 @@ namespace baseBot
 			help.Add("-Display users per Role: '!role role' exemple: !role tank");
 			help.Add("-Change user Role: '!edit name role' exemple: !edit bob healer");
 			help.Add("-Draw random user(s): '!draw number' exemple: !draw 2");
+			help.Add("-Draw random user(s) by role: '!draw number role' exemple: !draw 2 healer");
 			help.Add("-Show all curent users and their win count: '!list'");
 			help.Add("-Reset all Win counts to 0: '!reset'");
 			help.Add("-Delete message(s): '!purges number' exemple: !purges 5");
