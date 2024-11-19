@@ -5,7 +5,30 @@
 		//public Dictionary<string, int> UserList { get; set; } = new Dictionary<string, int>();
 		public List<Users> OmenList { get; set; } = new List<Users>();
 
-		public List<string> Roles = new List<string>() { "tank", "healer", "melee", "range", "m/r" };
+		public List<string> Roles = new List<string>()
+		{
+			"scorpion",
+			"outrider",
+			"raider",
+			"scout",
+			"battleweaver",
+			"fury",
+			"paladin",
+			"ravager",
+			"crusader",
+			"ranger",
+			"sentinel",
+			"berserker",
+			"warden",
+			"disciple",
+			"templar",
+			"infiltrator",
+			"liberator",
+			"seeker",
+			"spellblade",
+			"invocator",
+			"darkblighter"
+		};
 
 		public string help = "";
 		public string token = "";

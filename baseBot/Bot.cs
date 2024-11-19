@@ -2,6 +2,7 @@
 using DSharpPlus.CommandsNext;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
+using Microsoft.Extensions.Logging;
 
 namespace baseBot
 {
@@ -10,6 +11,7 @@ namespace baseBot
         public static DiscordClient Client { get; private set; }
 		public static AppData AppData { get; set; } = new AppData();
 		public static ManageDB ManageDB { get; set; } = new ManageDB();
+		public static string _SpreadsheetId = "1CXGhE6nJUUccRNG6n6LOf-gp0mjz6zdfnceMVA4dUfU";
 		public CommandsNextExtension Commands { get; private set; }
 		CancellationTokenSource _cts = new CancellationTokenSource();
 
@@ -52,6 +54,7 @@ namespace baseBot
 			Console.CancelKeyPress += CancelKey;  //ctrl + C
 			Client.GuildMemberAdded += Discord_GuildMemberAdded;
 			Client.GuildMemberRemoved += Client_GuildMemberRemoved;
+			
 		}
 
 		private void CancelKey(object sender, ConsoleCancelEventArgs e)
@@ -72,6 +75,7 @@ namespace baseBot
 				TokenType = TokenType.Bot,
 				AutoReconnect = true,
 				Intents = DiscordIntents.All,
+				MinimumLogLevel = LogLevel.Error
 			};
 
 			Client = new DiscordClient(config);
@@ -94,6 +98,7 @@ namespace baseBot
 
 		private async Task Discord_GuildMemberAdded(DiscordClient sender, GuildMemberAddEventArgs e)
 		{
+			if (e.Guild.Id != 1289323361427787808) return;
 			if (e.Member.IsBot) return;
 
 			var channel = await sender.GetChannelAsync(1289653768371310625);
@@ -116,6 +121,7 @@ namespace baseBot
 
 		private async Task Client_GuildMemberRemoved(DiscordClient sender, GuildMemberRemoveEventArgs args)
 		{
+			if (args.Guild.Id != 1289323361427787808) return;
 			if (args.Member.IsBot) return;
 
 			var guild = args.Guild;
