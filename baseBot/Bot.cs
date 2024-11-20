@@ -9,6 +9,7 @@ namespace baseBot
     public class Bot
     {
         public static DiscordClient Client { get; private set; }
+		private static readonly ulong leaderID = 1289655024666017843;
 		public static AppData AppData { get; set; } = new AppData();
 		public static ManageDB ManageDB { get; set; } = new ManageDB();
 		public static string _SpreadsheetId = "1CXGhE6nJUUccRNG6n6LOf-gp0mjz6zdfnceMVA4dUfU";
@@ -125,15 +126,17 @@ namespace baseBot
 			if (args.Member.IsBot) return;
 
 			var guild = args.Guild;
+			var leaderChannel = guild.GetChannel(leaderID);
 			var vexray = await guild.GetMemberAsync(114587845716344834);
 			var ultime = await guild.GetMemberAsync(337741216466862080);
 
 			var user = args.Member.Username;
 			var display = args.Member.DisplayName;
-			var message = $"UserName: {user}, DisplayName: {display} has left the server";
+			var message = $"UserName: {user}, DisplayName: {display} has left the server";		
 
 			await ultime.SendMessageAsync(message);
 			await vexray.SendMessageAsync(message);
+			await leaderChannel.SendMessageAsync(message);
 		}
 	}
 }

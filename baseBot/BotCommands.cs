@@ -13,8 +13,9 @@ namespace baseBot
     public class BotCommands : BaseCommandModule
     {
 		private static readonly Random random = new Random();
-		private static readonly ulong channelID = 1299832478286090322;
-		private static readonly ulong omenNews = 1297279620705685575;
+		private static readonly ulong omenRole = 1297259916368547933;
+		private static readonly ulong lootID = 1299832478286090322;
+		private static readonly ulong omenNewsID = 1297279620705685575;
 		private static readonly ulong vexID = 114587845716344834;
 		private static readonly ulong rekenID = 158460782445723658;
 		private static readonly ulong maligozeID = 142830810809106432;
@@ -56,10 +57,9 @@ namespace baseBot
 		[Description("Deletes messages")]
 		public async Task Help(CommandContext ctx)
 		{
-			if (!CheckRights(ctx)) return;
-
-			var messages = await ctx.Channel.GetMessagesAsync(1);
-			await ctx.Channel.DeleteMessagesAsync(messages);
+			await ctx.Message.DeleteAsync();
+			var omen = ctx.Guild.GetRole(omenRole);
+			if (!ctx.Member.Roles.Contains(omen)) return;
 
 			await ctx.Member.SendMessageAsync(Bot.AppData.help);
 		}
@@ -68,7 +68,7 @@ namespace baseBot
 		[Description("Deletes messages")]
 		public async Task purge(CommandContext ctx, int del)
 		{
-			if (!CheckRights(ctx)) return;
+			if (!CheckRights(ctx, lootID)) return;
 
 			var messages = await ctx.Channel.GetMessagesAsync(del + 1);
 			await ctx.Channel.DeleteMessagesAsync(messages);
@@ -78,6 +78,7 @@ namespace baseBot
 		[Description("get list")]
 		public async Task List(CommandContext ctx)
 		{
+			await ctx.Message.DeleteAsync();
 			if (ctx.Guild.Id != 1289323361427787808) return;
 			if (ctx.Channel.Id != 1299832478286090322) return;
 
@@ -129,7 +130,8 @@ namespace baseBot
 		[Description("draw users to win")]
 		public async Task Draw(CommandContext ctx, [Description("Count")] int count, [Description("role")] string role = "")
 		{
-			if (!CheckRights(ctx)) return;
+			await ctx.Message.DeleteAsync();
+			if (!CheckRights(ctx, lootID)) return;
 
 			if (count < 1)
 			{
@@ -203,7 +205,8 @@ namespace baseBot
 		[Description("display all user with given class")]
 		public async Task Reset(CommandContext ctx, [Description("Class")] string role = "")
 		{
-			if (!CheckRights(ctx)) return;
+			await ctx.Message.DeleteAsync();
+			if (!CheckRights(ctx, lootID)) return;
 
 			role = role.ToLower();
 
@@ -284,7 +287,8 @@ namespace baseBot
 		[Description("Reset win count")]
 		public async Task Reset(CommandContext ctx)
 		{
-			if (!CheckRights(ctx)) return;
+			await ctx.Message.DeleteAsync();
+			if (!CheckRights(ctx, lootID)) return;
 
 			foreach (var item in Bot.AppData.OmenList.ToArray())
 			{
@@ -299,19 +303,17 @@ namespace baseBot
 		[Description("Reset win count")]
 		public async Task Ting(CommandContext ctx)
 		{
-			//if (!CheckRights(ctx)) return;
-			//var user = await ctx.Guild.GetMemberAsync(158460782445723658);
-
+			await ctx.Message.DeleteAsync();
 			await ctx.Channel.SendMessageAsync($"Hi Tall-Tinger {ctx.Member.Mention}, please help me find a perfect pumpkin!");
 		}
 
-		[Command("self")]
+		[Command("team")]
 		[Description("team comp (self)")]
 		public async Task Self(CommandContext ctx)
 		{
 			await ctx.Message.DeleteAsync();
 
-			var omen = ctx.Guild.GetRole(1297259916368547933);
+			var omen = ctx.Guild.GetRole(omenRole);
 			if (!ctx.Member.Roles.Contains(omen)) return;
 
 			await ctx.Member.SendMessageAsync("Generating the roster... (may take a few seconds)");
@@ -336,27 +338,56 @@ namespace baseBot
 				await ctx.Member.SendMessageAsync(secondBatchMessageBuilder);
 			}
 
-			Console.WriteLine($"{ctx.Member.DisplayName} used the !self command");
+			Console.WriteLine($"{ctx.Member.Username} used the !self command");
 		}
 
 		[Command("roster")]
-		[Description("team comp")]
-		public async Task Roster(CommandContext ctx)
+		[Description("team comp (no poll)")]
+		public async Task Final(CommandContext ctx)
 		{
-			if (!CheckRights(ctx)) return;
-
-			var omen = ctx.Guild.GetRole(1297259916368547933);
-			var channel = ctx.Guild.GetChannel(omenNews);
+			await ctx.Message.DeleteAsync();
+			if (!CheckRights(ctx, omenNewsID)) return;			
 
 			var embedsList = await GetTeam();
 
-			//await channel.SendMessageAsync(omen.Mention + Environment.NewLine + "Here is the team roster! Please select 👍 if you can come or 👎 if you can't on the appropriate team.");
-			await ctx.Channel.SendMessageAsync(/*omen.Mention + Environment.NewLine + */"Here is the team roster! Please select 👍 if you can come or 👎 if you can't on the appropriate team.");
+			var omen = ctx.Guild.GetRole(omenRole);
+			await ctx.Channel.SendMessageAsync(omen.Mention + Environment.NewLine + "Here is the team roster based on availability!");
+
+			// Send the first 10 embeds in one message
+			if (embedsList.Count <= 10)
+			{
+				var messageBuilder = new DiscordMessageBuilder().AddEmbeds(embedsList.ToArray());  // Convert list to array
+				await ctx.Channel.SendMessageAsync(messageBuilder);
+			}
+			else
+			{
+				var firstBatch = embedsList.Take(10).ToList();
+				var secondBatch = embedsList.Skip(10).ToList();
+
+				// Send the first batch
+				var firstBatchMessageBuilder = new DiscordMessageBuilder().AddEmbeds(firstBatch.ToArray());
+				await ctx.Channel.SendMessageAsync(firstBatchMessageBuilder);
+				// Send the second batch
+				var secondBatchMessageBuilder = new DiscordMessageBuilder().AddEmbeds(secondBatch.ToArray());
+				await ctx.Channel.SendMessageAsync(secondBatchMessageBuilder);
+			}
+		}
+
+		[Command("roster-poll")]
+		[Description("team comp poll")]
+		public async Task Roster(CommandContext ctx)
+		{
+			await ctx.Message.DeleteAsync();
+			if (!CheckRights(ctx, omenNewsID)) return;
+			
+			var embedsList = await GetTeam();
+
+			var omen = ctx.Guild.GetRole(omenRole);
+			await ctx.Channel.SendMessageAsync(omen.Mention + Environment.NewLine + "Here is the planned team roster! Please select 👍 if you can come or 👎 if you can't on the appropriate team.");
 
 			foreach (var embed in embedsList)
 			{
 				// Send each embed as a separate message
-				//var message = await channel.SendMessageAsync(embed: embed);
 				var message = await ctx.Channel.SendMessageAsync(embed: embed);
 
 				// Add reactions for thumbs up (show) and thumbs down (hide) for each embed message
@@ -369,69 +400,43 @@ namespace baseBot
 		[Description("Boonstone time") ]
 		public async Task Boon(CommandContext ctx, [Description("day")] string day = "")
 		{
-			if (!CheckRights(ctx) || day == "") return;
+			await ctx.Message.DeleteAsync();
+			if (!CheckRights(ctx, omenNewsID)) return;
 
-			string normalizedDay = day.Trim().ToLower();
-
-			if (!_daysOfWeek.TryGetValue(day.ToLower(), out DayOfWeek targetDay))
+			if (day == "") 
 			{
-				await ctx.Channel.SendMessageAsync("Invalid day entered. Please use a valid day of the week (e.g., Monday, Friday).");
+				await ctx.Member.SendMessageAsync("You need to enter a day of the week. (ex: !boon monday) ");
 				return;
 			}
-
-			var omen = ctx.Guild.GetRole(1297259916368547933);
-
-			// Get current Eastern Time (ET)
-			TimeZoneInfo easternTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time");
-			DateTime currentTimeEastern = TimeZoneInfo.ConvertTime(DateTime.Now, easternTimeZone);
-
-			// Calculate the closest occurrence of the entered day at 7:00 PM ET
-			DateTime nextDay = currentTimeEastern.Date.AddHours(19); // Start with today's date at 7:00 PM ET
-
-			// If the target day is today but after 7:00 PM, move to next week
-			if (currentTimeEastern.DayOfWeek == targetDay && currentTimeEastern.Hour >= 19)
-			{
-				nextDay = currentTimeEastern.AddDays(7).Date.AddHours(19); // Set it for the same day next week
-			}
-			else
-			{
-				// Calculate days to the next target day
-				int daysToAdd = ((int)targetDay - (int)currentTimeEastern.DayOfWeek + 7) % 7;
-				nextDay = currentTimeEastern.AddDays(daysToAdd).Date.AddHours(19); // Set to 7:00 PM ET on that day
-			}
-
-			// Convert the event time to UTC
-			DateTime eventTimeUtc = TimeZoneInfo.ConvertTimeToUtc(nextDay, easternTimeZone);
-
-			// Convert to Unix timestamp for Discord
-			long unixTimestamp = new DateTimeOffset(eventTimeUtc).ToUnixTimeSeconds();
-
-			var embed = new DiscordEmbedBuilder()
-				.WithTitle("Boonstone war!")
-				.WithDescription($"The event is scheduled for {day} at <t:{unixTimestamp}:t>") // Time in UTC
-				.WithColor(DiscordColor.Gold);
-
-			var channel = ctx.Guild.GetChannel(omenNews);
-			//await channel.SendMessageAsync(omen.Mention, embed);
-			await ctx.Channel.SendMessageAsync(/*omen.Mention, */embed);
+		 
+			await Event(ctx, day, "Boonstone war!");
 		}
 
 		[Command("Rift")]
 		[Description("Riftstone time")]
 		public async Task Rift(CommandContext ctx, [Description("day")] string day = "")
 		{
-			if (!CheckRights(ctx) || day == "") return;
+			await ctx.Message.DeleteAsync();
+			if (!CheckRights(ctx, omenNewsID)) return;
 
-			string normalizedDay = day.Trim().ToLower();
-
-
-			if (!_daysOfWeek.TryGetValue(day.ToLower(), out DayOfWeek targetDay))
+			if (day == "")
 			{
-				await ctx.Channel.SendMessageAsync("Invalid day entered. Please use a valid day of the week (e.g., Monday, Friday).");
+				await ctx.Member.SendMessageAsync("You need to enter a day of the week. (ex: !rift monday) ");
 				return;
 			}
 
-			var omen = ctx.Guild.GetRole(1297259916368547933);
+			await Event(ctx, day, "Riftstone war!");
+		}
+
+		private async Task Event(CommandContext ctx, string day, string name)
+		{
+			string normalizedDay = day.Trim().ToLower();
+
+			if (!_daysOfWeek.TryGetValue(day.ToLower(), out DayOfWeek targetDay))
+			{
+				await ctx.Member.SendMessageAsync("Invalid day entered. Please use a valid day of the week (e.g., Monday, Friday).");
+				return;
+			}
 
 			// Get current Eastern Time (ET)
 			TimeZoneInfo easternTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time");
@@ -459,13 +464,12 @@ namespace baseBot
 			long unixTimestamp = new DateTimeOffset(eventTimeUtc).ToUnixTimeSeconds();
 
 			var embed = new DiscordEmbedBuilder()
-				.WithTitle("Riftstone war!")
+				.WithTitle(name)
 				.WithDescription($"The event is scheduled for {day} at <t:{unixTimestamp}:t>") // Time in UTC
 				.WithColor(DiscordColor.Gold);
 
-			var channel = ctx.Guild.GetChannel(omenNews);
-			//await channel.SendMessageAsync(omen.Mention, embed);
-			await ctx.Channel.SendMessageAsync(/*omen.Mention, */embed);
+			var omen = ctx.Guild.GetRole(omenRole);
+			await ctx.Channel.SendMessageAsync(omen.Mention, embed);
 		}
 
 		private async Task<List<DiscordEmbed>> GetTeam()
@@ -517,13 +521,11 @@ namespace baseBot
 
 				for (int i = 0; i < count; i++)
 				{
-					if (!string.IsNullOrWhiteSpace(valuesA[i][0].ToString()))
+					if (valuesA[i] != null)
 					{
 						string role = "";
-
-						if (!string.IsNullOrWhiteSpace(valuesB[i][0]?.ToString())) role = " | " + valuesB[i][0].ToString().Trim();
-
-						tempList.Add(valuesA[i][0].ToString().Trim() + role);
+						if (valuesB[i] != null && valuesB[i].Count != 0) role = " | " + valuesB[i][0].ToString().Trim();
+						if (valuesA[i].Count != 0) tempList.Add(valuesA[i][0].ToString().Trim() + role);
 					}
 				}
 
@@ -533,7 +535,7 @@ namespace baseBot
 				.WithColor(DiscordColor.Green)
 				.Build();
 
-				embedsList.Add(embed);
+				embedsList.Add(embed);			
 			}
 
 			return embedsList;
@@ -600,12 +602,12 @@ namespace baseBot
 			Bot.ManageDB.SaveList();
 		}
 
-		private bool CheckRights(CommandContext ctx)
+		private bool CheckRights(CommandContext ctx, ulong id)
 		{
 			var guard = ctx.Guild.GetRole(guardian);
 			var advise = ctx.Guild.GetRole(advisor);
 
-			if (ctx.Channel.Id == channelID && (ctx.User.Id == ultimeID || ctx.User.Id == vexID || ctx.Member.Roles.Contains(guard) || ctx.Member.Roles.Contains(advise))) return true;
+			if (ctx.Channel.Id == id && (ctx.User.Id == ultimeID || ctx.User.Id == vexID || ctx.Member.Roles.Contains(guard) || ctx.Member.Roles.Contains(advise))) return true;
 			return false;
 		}
 	}

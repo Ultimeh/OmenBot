@@ -37,7 +37,7 @@ namespace baseBot
 			help.Add("-Draw random user(s) by class: '!draw number class' exemple: !draw 2 paladin");
 			help.Add("-Show all curent users and their win count: '!list'");
 			help.Add("-Reset all Win counts to 0: '!reset'");
-			help.Add("-Request latest team comp for yourself: '!self'");
+			help.Add("-Request latest team comp for yourself: '!team'");
 
 			Bot.AppData.help = "```" + Environment.NewLine + string.Join(Environment.NewLine, help) + Environment.NewLine + "```";
 		}
