@@ -3,6 +3,7 @@ using DSharpPlus.CommandsNext;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
 using Microsoft.Extensions.Logging;
+using System.Collections.Concurrent;
 
 namespace baseBot
 {
@@ -10,11 +11,15 @@ namespace baseBot
     {
         public static DiscordClient Client { get; private set; }
 		private static readonly ulong leaderID = 1289655024666017843;
+		public static readonly Random Random = new Random();
+		public static readonly object LockRandom = new object();
 		public static AppData AppData { get; set; } = new AppData();
 		public static ManageDB ManageDB { get; set; } = new ManageDB();
 		public static string _SpreadsheetId = "1CXGhE6nJUUccRNG6n6LOf-gp0mjz6zdfnceMVA4dUfU";
 		public CommandsNextExtension Commands { get; private set; }
 		CancellationTokenSource _cts = new CancellationTokenSource();
+
+		public static ConcurrentDictionary<ulong, List<ulong>> ItemPoll = new ConcurrentDictionary<ulong, List<ulong>>();
 
 		public async Task StartBot()
 		{
@@ -55,7 +60,33 @@ namespace baseBot
 			Console.CancelKeyPress += CancelKey;  //ctrl + C
 			Client.GuildMemberAdded += Discord_GuildMemberAdded;
 			Client.GuildMemberRemoved += Client_GuildMemberRemoved;
-			
+			Client.MessageReactionAdded += Client_MessageReactionAdded;
+			Client.MessageReactionRemoved += Client_MessageReactionRemoved;
+		}
+
+		private Task Client_MessageReactionAdded(DiscordClient sender, MessageReactionAddEventArgs args)
+		{
+			if (args.User.IsBot) return Task.CompletedTask;
+
+			if (ItemPoll.TryGetValue(args.Message.Id, out List<ulong> nameID))
+			{
+				nameID.Add(args.User.Id);
+			}
+
+			return Task.CompletedTask;
+		}
+
+
+		private Task Client_MessageReactionRemoved(DiscordClient sender, MessageReactionRemoveEventArgs args)
+		{
+			if (args.User.IsBot) return Task.CompletedTask;
+
+			if (ItemPoll.TryGetValue(args.Message.Id, out List<ulong> nameID))
+			{
+				if (nameID.Contains(args.User.Id)) nameID.Remove(args.User.Id);
+			}
+
+			return Task.CompletedTask;
 		}
 
 		private void CancelKey(object sender, ConsoleCancelEventArgs e)

@@ -12,7 +12,6 @@ namespace baseBot
 {
     public class BotCommands : BaseCommandModule
     {
-		private static readonly Random random = new Random();
 		private static readonly ulong omenRole = 1297259916368547933;
 		private static readonly ulong lootID = 1299832478286090322;
 		private static readonly ulong omenNewsID = 1297279620705685575;
@@ -72,6 +71,81 @@ namespace baseBot
 
 			var messages = await ctx.Channel.GetMessagesAsync(del + 1);
 			await ctx.Channel.DeleteMessagesAsync(messages);
+		}
+
+		[Command("item-set")]
+		[Description("set item poll")]
+		public async Task Item(CommandContext ctx, [Description("item time")] int time, [Description("item slot")] string slot, [Description("item name"), RemainingText] string itemName)
+		{
+			if (!CheckRights(ctx, lootID)) return;
+			if (string.IsNullOrWhiteSpace(slot)) return;
+			if (string.IsNullOrWhiteSpace(itemName)) return;
+
+			await ctx.Message.DeleteAsync();
+			var omen = ctx.Guild.GetRole(omenRole);
+
+			string formattedTime = "";
+
+			if (time != 0)
+			{
+				int days = time / 1440;  // Get the number of days (1 day = 1440 minutes)
+				int hours = (time % 1440) / 60;  // Get the number of hours from the remaining minutes
+				int minutes = time % 60;  // Get the remaining minutes
+
+				if (days != 0) formattedTime = $"{days} days {hours} hours {minutes} minutes Remain until Drawing";
+				else if (days == 0 && hours != 0) formattedTime = $"{hours} hours {minutes} minutes Remain until Drawing";
+				else if (days == 0 && hours == 0) formattedTime = $"{minutes} minutes Remain until Drawing";
+			}
+			else formattedTime = $"2 day(s) Remain until Drawing";
+
+
+			var message = "**Please React with 'Thumbs Up' if this is your Best In Slot!**" + Environment.NewLine +
+						  $"Item: {itemName}" + Environment.NewLine +
+						  $"Item slot: {slot}" + Environment.NewLine +
+						  $"{formattedTime}";
+
+
+			var sent = await ctx.Channel.SendMessageAsync(/*omen.Mention + Environment.NewLine +*/ message);
+			await sent.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":thumbsup:"));
+
+
+			Bot.ItemPoll.TryAdd(sent.Id, new List<ulong>());
+			ItemPoll itemPoll = new ItemPoll(sent, time);
+		}
+
+		[Command("item")]
+		[Description("current item poll")]
+		public async Task Item(CommandContext ctx)
+		{
+			await ctx.Message.DeleteAsync();
+
+			var omen = ctx.Guild.GetRole(omenRole);
+			if (!ctx.Member.Roles.Contains(omen)) return;
+
+			if (Bot.ItemPoll.Count == 0)
+			{
+				await ctx.Member.SendMessageAsync("No item polls in progess at the moment!");
+				return;
+			}
+
+			await ctx.Member.SendMessageAsync("**Current item polls in progess:**");
+			
+			var loot = await Bot.Client.GetChannelAsync(lootID);
+
+			foreach (var id in Bot.ItemPoll.Keys)
+			{
+				var message = await loot.GetMessageAsync(id);
+
+				string content = message.Content;
+				var lines = content.Split('\n').ToList();
+				lines.RemoveAt(0);
+
+				var update = string.Join('\n', lines);
+				await ctx.Member.SendMessageAsync(update);
+			}
+
+			await ctx.Member.SendMessageAsync(Environment.NewLine + "**If you need any of these items,**" + Environment.NewLine + $"**Go to {loot.Mention} channel to React with 'Thumbs Up'**");
+			Console.WriteLine($"{ctx.Member.DisplayName} used the !item command");
 		}
 
 		[Command("list")]
@@ -177,7 +251,13 @@ namespace baseBot
 
 			for (int i = userList.Count() - 1; i >= 0; i--) // Shuffle the keys
 			{
-				int j = random.Next(0, i + 1); // Pick a random index
+				int j = 0;
+
+				lock (Bot.LockRandom)
+				{
+					j = Bot.Random.Next(0, i + 1); // Pick a random index
+				}
+		
 				(userList[i], userList[j]) = (userList[j], userList[i]); // Swap elements
 			}
 
