@@ -133,22 +133,25 @@ namespace baseBot
 			}
 
 			await ctx.Member.SendMessageAsync("**Current item polls in progess:**");
-			
-			var loot = await Bot.Client.GetChannelAsync(lootID);
+
+			var lootChannel = await Bot.Client.GetChannelAsync(lootID);
+			List<string> msgList = new List<string>();
 
 			foreach (var id in Bot.AppData.ItemPoll.Keys)
 			{
-				var message = await loot.GetMessageAsync(id);
+				var message = await lootChannel.GetMessageAsync(id);
 
-				string content = message.Content;
+				string content = message.Content + Environment.NewLine;
 				var lines = content.Split('\n').ToList();
 				lines.RemoveAt(0);
 
-				var update = string.Join('\n', lines);
-				await ctx.Member.SendMessageAsync(update);
+				var update = string.Join(Environment.NewLine, lines);
+				msgList.Add(update);
 			}
 
-			await ctx.Member.SendMessageAsync(Environment.NewLine + "**If you need any of these items,**" + Environment.NewLine + $"**Go to {loot.Mention} channel to React with 'Thumbs Up'**");
+			var msg = "```" + Environment.NewLine + string.Join(Environment.NewLine, msgList) + Environment.NewLine + "```";
+			var info = Environment.NewLine + "**If you need any of these items,**" + Environment.NewLine + $"**Go to {lootChannel.Mention} channel to React with 'Thumbs Up'**";
+			await ctx.Member.SendMessageAsync(msg + info);
 			Console.WriteLine($"{ctx.Member.DisplayName} used the !item command");
 		}
 
@@ -175,6 +178,7 @@ namespace baseBot
 			}
 
 			var fullMessage = string.Join(Environment.NewLine, prepareList);
+			var count = fullMessage.Count();
 
 			var messagesToSend = new List<string>();
 
@@ -192,16 +196,15 @@ namespace baseBot
 			}
 
 			// Add any remaining message
-			if (fullMessage.Length > 0)
-			{
-				messagesToSend.Add(fullMessage);
-			}
+			if (fullMessage.Length > 0) messagesToSend.Add(fullMessage);
 
 			// Now send each message in messagesToSend separately
 			foreach (var message in messagesToSend)
 			{
 				await ctx.Channel.SendMessageAsync("```" + Environment.NewLine + message + Environment.NewLine + "```");
 			}
+
+			await ctx.Channel.SendMessageAsync($"{count} members");
 		}
 
 		[Command("draw")]

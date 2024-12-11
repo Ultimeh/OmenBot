@@ -16,11 +16,11 @@
     <PackageReference Include="DSharpPlus.CommandsNext" Version="4.5.0" />
     <PackageReference Include="DSharpPlus.Interactivity" Version="4.5.0" />
     <PackageReference Include="Google.Apis.Sheets.v4" Version="1.68.0.3568" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.2" />
-    <PackageReference Include="System.Collections.Immutable" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0" />
+    <PackageReference Include="System.Collections.Immutable" Version="9.0.0" />
     <PackageReference Include="System.Net.Security" Version="4.3.2" />
-    <PackageReference Include="System.Threading.Channels" Version="8.0.0" />
+    <PackageReference Include="System.Threading.Channels" Version="9.0.0" />
   </ItemGroup>
 
   <ItemGroup>
