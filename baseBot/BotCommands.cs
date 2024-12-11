@@ -27,18 +27,18 @@ namespace baseBot
 
 		private static readonly Dictionary<int, string> _teamDic = new Dictionary<int, string>
 		{
-			{ 1, "A2,A7,B2,B7, Heavy Front" },
-			{ 2, "E2,E7,F2,F7, Heavy Front" },
-			{ 3, "I2,I7,J2,J7, Melee Midline" },
-			{ 4, "M2,M7,N2,N7, Midline Flex" },
-			{ 5, "A11,A16,B11,B16, Burst Team" },
-			{ 6, "E11,E16,F11,F16, Crab Team" },
-			{ 7, "I11,I16,J11,J16, Rear Ranged" },
-			{ 8, "M11,M16,N11,N16, Rear Ranged" },
-			{ 9, "A20,A25,B20,B25" },
-			{ 10, "E20,E25,F20,F25" },
-			{ 11, "I20,I25,J20,J25" },
-			{ 12, "M20,M25,N20,N25" }
+			{ 1, "A2,A7,B2,B7, Front Line 1" },
+			{ 2, "E2,E7,F2,F7, Front Line 2" },
+			{ 3, "I2,I7,J2,J7, Front Line 3" },
+			{ 4, "M2,M7,N2,N7, Front Line 4" },
+			{ 5, "A11,A16,B11,B16, Mid Line 1" },
+			{ 6, "E11,E16,F11,F16, Mid Line 1" },
+			{ 7, "I11,I16,J11,J16, Crab Team" },		
+			{ 8, "A20,A25,B20,B25, Ranged 1" },
+			{ 9, "E20,E25,F20,F25, Ranged 2" },
+			{ 10, "I20,I25,J20,J25, Ranged 3" },
+			{ 11, "M20,M25,N20,N25, Melee Fill Team" },
+			{ 12, "M11,M16,N11,N16, Ranged Fill Team" }	
 		};
 
 		private static readonly Dictionary<string, DayOfWeek> _daysOfWeek = new Dictionary<string, DayOfWeek>
@@ -109,8 +109,12 @@ namespace baseBot
 			await sent.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":thumbsup:"));
 
 
-			Bot.ItemPoll.TryAdd(sent.Id, new List<ulong>());
-			ItemPoll itemPoll = new ItemPoll(sent, time);
+			Bot.AppData.ItemPoll.TryAdd(sent.Id, new List<ulong>());
+
+			TimeSpan threshold = TimeSpan.FromHours(48);
+			if (time != 0) threshold = TimeSpan.FromMinutes(time);
+
+			ItemPoll itemPoll = new ItemPoll(sent, threshold);
 		}
 
 		[Command("item")]
@@ -122,7 +126,7 @@ namespace baseBot
 			var omen = ctx.Guild.GetRole(omenRole);
 			if (!ctx.Member.Roles.Contains(omen)) return;
 
-			if (Bot.ItemPoll.Count == 0)
+			if (Bot.AppData.ItemPoll.Count == 0)
 			{
 				await ctx.Member.SendMessageAsync("No item polls in progess at the moment!");
 				return;
@@ -132,7 +136,7 @@ namespace baseBot
 			
 			var loot = await Bot.Client.GetChannelAsync(lootID);
 
-			foreach (var id in Bot.ItemPoll.Keys)
+			foreach (var id in Bot.AppData.ItemPoll.Keys)
 			{
 				var message = await loot.GetMessageAsync(id);
 
@@ -418,7 +422,7 @@ namespace baseBot
 				await ctx.Member.SendMessageAsync(secondBatchMessageBuilder);
 			}
 
-			Console.WriteLine($"{ctx.Member.Username} used the !self command");
+			Console.WriteLine($"{ctx.Member.DisplayName} used the !team command");
 		}
 
 		[Command("roster")]
@@ -610,7 +614,7 @@ namespace baseBot
 				}
 
 				var embed = new DiscordEmbedBuilder()
-				.WithTitle($"Team {team}{teamInfo}")
+				.WithTitle(teamInfo)
 				.WithDescription(string.Join(Environment.NewLine, tempList))
 				.WithColor(DiscordColor.Green)
 				.Build();

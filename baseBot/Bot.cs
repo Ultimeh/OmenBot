@@ -19,16 +19,15 @@ namespace baseBot
 		public CommandsNextExtension Commands { get; private set; }
 		CancellationTokenSource _cts = new CancellationTokenSource();
 
-		public static ConcurrentDictionary<ulong, List<ulong>> ItemPoll = new ConcurrentDictionary<ulong, List<ulong>>();
-
 		public async Task StartBot()
 		{
 			SetupClient();
 
 			try
-			{
+			{			
 				await Client.ConnectAsync(); //connection a Discord
 				Console.WriteLine("Connected: Bot is ready." + Environment.NewLine);
+				Console.WriteLine(await RestoreItemPoll());
 			}
 			catch (Exception ex)
 			{
@@ -45,6 +44,54 @@ namespace baseBot
 			{
 				ExitApp("Bot shutdown completed.");
 			}
+		}
+
+		private async Task<string> RestoreItemPoll()
+		{
+			ManageDB.LoadItemPoll();
+
+			if (AppData.TimePoll.Count == 0) return "No Item poll to restore";
+
+			var guild = await Client.GetGuildAsync(1289323361427787808);
+			var channel = await Client.GetChannelAsync(1299832478286090322);
+
+			DiscordMessage message = null;
+			int count = 0;
+
+			foreach (var item in AppData.TimePoll)
+			{
+				try
+				{
+					message = await channel.GetMessageAsync(item.Key);
+				}
+				catch (Exception)
+				{
+					Console.WriteLine("Error to retrieve a message");
+					continue;
+				}
+
+				foreach (var react in message.Reactions)
+				{
+					if (react.Emoji.Name == "👍")
+					{
+						var reactionUsers = await message.GetReactionsAsync(react.Emoji);
+						List<ulong> users = new List<ulong>();
+
+						foreach (var user in reactionUsers)
+						{
+							if (!user.IsBot) users.Add(user.Id);
+						}
+
+						AppData.ItemPoll.TryAdd(message.Id, users);
+						ItemPoll itemPoll = new ItemPoll(message, AppData.TimePoll[message.Id]);
+						count++;
+						break;
+					}
+				}
+			}
+
+			AppData.TimePoll.Clear();
+			return $"{count} item polls restored";
 		}
 		 
 		private void ExitApp(string message)
@@ -68,7 +115,7 @@ namespace baseBot
 		{
 			if (args.User.IsBot) return Task.CompletedTask;
 
-			if (ItemPoll.TryGetValue(args.Message.Id, out List<ulong> nameID))
+			if (AppData.ItemPoll.TryGetValue(args.Message.Id, out List<ulong> nameID))
 			{
 				nameID.Add(args.User.Id);
 			}
@@ -81,7 +128,7 @@ namespace baseBot
 		{
 			if (args.User.IsBot) return Task.CompletedTask;
 
-			if (ItemPoll.TryGetValue(args.Message.Id, out List<ulong> nameID))
+			if (AppData.ItemPoll.TryGetValue(args.Message.Id, out List<ulong> nameID))
 			{
 				if (nameID.Contains(args.User.Id)) nameID.Remove(args.User.Id);
 			}
@@ -89,12 +136,15 @@ namespace baseBot
 			return Task.CompletedTask;
 		}
 
-		private void CancelKey(object sender, ConsoleCancelEventArgs e)
+		private async void CancelKey(object sender, ConsoleCancelEventArgs e)
 		{
 			Console.WriteLine("Ctrl + C by user. Closing the bot...");
 			e.Cancel = true; // empeche la console fermer auto apres le ctrl+c (permet de faire code en bas et gerer la closing)
-							 // do stuff before closing au besoin
-			_cts.Cancel(); // cancel le CTS pour creaker le await -1
+			AppData.cts.Cancel();
+			await Task.WhenAll(AppData.PollTask);
+			ManageDB.SaveItemPoll();
+			await Client.DisconnectAsync();			
+			_cts.Cancel(); // cancel le CTS pour breaker le await -1
 		}
 
 		private void SetupClient()

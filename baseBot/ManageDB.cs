@@ -1,10 +1,12 @@
-﻿using System.Text.Json;
+﻿using System.Collections.Concurrent;
+using System.Text.Json;
 
 namespace baseBot
 {
 	public class ManageDB
 	{
 		string pathDB = @".\data\UserList.db";
+		string PathTimePoll = @".\data\TimePoll.db";
 		private static readonly object LockSave = new object();
 
 		public void LoadList()
@@ -29,15 +31,18 @@ namespace baseBot
 				Console.WriteLine(ex.Message);
 			}
 
-			List<string> help = new List<string>();
-			help.Add("List or all commands for the Loot Bot:");
-			help.Add("-------------------------------------------------------------");
-			help.Add("-Display users per Class: '!class class' exemple: !role paladin");
-			help.Add("-Draw random user(s): '!draw number' exemple: !draw 2");
-			help.Add("-Draw random user(s) by class: '!draw number class' exemple: !draw 2 paladin");
-			help.Add("-Show all curent users and their win count: '!list'");
-			help.Add("-Reset all Win counts to 0: '!reset'");
-			help.Add("-Request latest team comp for yourself: '!team'");
+			List<string> help =
+			[
+				"List or all commands for the Loot Bot:",
+				"-------------------------------------------------------------",
+				"-Display users per Class: '!class class' exemple: !role paladin",
+				"-Draw random user(s): '!draw number' exemple: !draw 2",
+				"-Draw random user(s) by class: '!draw number class' exemple: !draw 2 paladin",
+				"-Show all curent users and their win count: '!list'",
+				"-Reset all Win counts to 0: '!reset'",
+				"-Request latest team comp for yourself: '!team'",
+				"-See current item poll : '!item'",
+			];
 
 			Bot.AppData.help = "```" + Environment.NewLine + string.Join(Environment.NewLine, help) + Environment.NewLine + "```";
 		}
@@ -55,6 +60,34 @@ namespace baseBot
 				{
 					Console.WriteLine(ex.Message);
 				}
+			}
+		}
+
+		public void SaveItemPoll()
+		{
+			try
+			{
+				var json = JsonSerializer.Serialize(Bot.AppData.TimePoll);
+				File.WriteAllText(PathTimePoll, json);
+				Console.WriteLine(Bot.AppData.TimePoll.Count + " Item polls saved");
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine(ex.Message);
+			}
+		}
+
+		public void LoadItemPoll()
+		{
+			try
+			{
+				var json = File.ReadAllText(PathTimePoll);
+				Bot.AppData.TimePoll = JsonSerializer.Deserialize<ConcurrentDictionary<ulong, TimeSpan>>(json);
+				Console.WriteLine("Item polls / time Loaded");
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine(ex.Message);
 			}
 		}
 	}
