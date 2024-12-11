@@ -19,13 +19,13 @@ namespace baseBot
 		{
 			bool stop = false;
 			bool sendNotification = false;
-	
-			PeriodicTimer timeCheck = new PeriodicTimer(TimeSpan.FromSeconds(10));
-			Stopwatch stopwatchElapsed = Stopwatch.StartNew();
-			Stopwatch stopwatchUpdate = Stopwatch.StartNew();
 
 			TimeSpan remainingTime = TimeSpan.Zero;
 			TimeSpan elapsed;
+
+			PeriodicTimer timeCheck = new PeriodicTimer(TimeSpan.FromSeconds(10));
+			Stopwatch stopwatchElapsed = Stopwatch.StartNew();
+			Stopwatch stopwatchUpdate = Stopwatch.StartNew();
 
 			try
 			{
@@ -52,8 +52,7 @@ namespace baseBot
 
 					if (stopwatchUpdate.Elapsed >= TimeSpan.FromMinutes(2))
 					{
-						string timeMsg = RemainingTime(remainingTime);
-						stop = await UpdateMessage(timeMsg);
+						stop = await UpdateMessage(RemainingTime(remainingTime));
 						if (stop) break;
 						stopwatchUpdate.Restart();
 					}
@@ -66,13 +65,18 @@ namespace baseBot
 				timeCheck.Dispose();
 
 				Bot.AppData.TimePoll.TryAdd(_message.Id, remainingTime);
+				return;
 			}
 
 			if (sendNotification)
 			{
 				var guild = _message.Channel.Guild;
 				var vexray = await guild.GetMemberAsync(114587845716344834);
-				await vexray.SendMessageAsync("An item poll ended with a winner.");
+				var zestra = await guild.GetMemberAsync(138888245235679232);
+				var msg = "An item poll ended with a winner.";
+
+				await vexray.SendMessageAsync(msg);
+				await zestra.SendMessageAsync(msg);
 			}
 
 			stopwatchElapsed.Stop();
