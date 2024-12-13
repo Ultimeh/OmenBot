@@ -3,7 +3,6 @@ using DSharpPlus.CommandsNext;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
 using Microsoft.Extensions.Logging;
-using System.Collections.Concurrent;
 
 namespace baseBot
 {
@@ -27,7 +26,7 @@ namespace baseBot
 			{			
 				await Client.ConnectAsync(); //connection a Discord
 				Console.WriteLine("Connected: Bot is ready." + Environment.NewLine);
-				Console.WriteLine(await RestoreItemPoll());
+				Console.WriteLine(await RestoreItemPoll() + Environment.NewLine);
 			}
 			catch (Exception ex)
 			{
@@ -83,6 +82,7 @@ namespace baseBot
 						}
 
 						AppData.ItemPoll.TryAdd(message.Id, users);
+
 						ItemPoll itemPoll = new ItemPoll(message, AppData.TimePoll[message.Id]);
 						count++;
 						break;
@@ -91,6 +91,7 @@ namespace baseBot
 			}
 
 			AppData.TimePoll.Clear();
+			ManageDB.SaveItemPoll();
 			return $"{count} item polls restored";
 		}
 		 

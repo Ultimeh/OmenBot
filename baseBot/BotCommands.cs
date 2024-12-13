@@ -128,29 +128,43 @@ namespace baseBot
 
 			if (Bot.AppData.ItemPoll.Count == 0)
 			{
-				await ctx.Member.SendMessageAsync("No item polls in progess at the moment!");
+				await ctx.Member.SendMessageAsync("No item polls in progress at the moment!");
 				return;
 			}
 
-			await ctx.Member.SendMessageAsync("**Current item polls in progess:**");
+			await ctx.Member.SendMessageAsync("**Current item polls in progress:**");
 
 			var lootChannel = await Bot.Client.GetChannelAsync(lootID);
 			List<string> msgList = new List<string>();
+			DiscordMessage message = null;
 
 			foreach (var id in Bot.AppData.ItemPoll.Keys)
 			{
-				var message = await lootChannel.GetMessageAsync(id);
-
-				string content = message.Content + Environment.NewLine;
-				var lines = content.Split('\n').ToList();
+				try
+				{
+					message = await lootChannel.GetMessageAsync(id);
+				}
+				catch 
+				{
+					continue;
+				}
+			
+				string content = message.Content;
+				var lines = content.Split(Environment.NewLine).ToList();
 				lines.RemoveAt(0);
 
 				var update = string.Join(Environment.NewLine, lines);
 				msgList.Add(update);
 			}
 
-			var msg = "```" + Environment.NewLine + string.Join(Environment.NewLine, msgList) + Environment.NewLine + "```";
-			var info = Environment.NewLine + "**If you need any of these items,**" + Environment.NewLine + $"**Go to {lootChannel.Mention} channel to React with 'Thumbs Up'**";
+			if (msgList.Count == 0) 
+			{
+				await ctx.Member.SendMessageAsync("No item polls in progress at the moment!");
+				return;
+			}
+
+			var msg = "```" + Environment.NewLine + string.Join(Environment.NewLine + Environment.NewLine, msgList) + Environment.NewLine + "```";
+			var info = "**If you need any of these items,**" + Environment.NewLine + $"**Go to {lootChannel.Mention} channel to React with 'Thumbs Up'**";
 			await ctx.Member.SendMessageAsync(msg + info);
 			Console.WriteLine($"{ctx.Member.DisplayName} used the !item command");
 		}

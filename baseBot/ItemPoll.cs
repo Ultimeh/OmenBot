@@ -21,28 +21,28 @@ namespace baseBot
 			bool sendNotification = false;
 
 			TimeSpan remainingTime = TimeSpan.Zero;
-			TimeSpan elapsed;
 
 			PeriodicTimer timeCheck = new PeriodicTimer(TimeSpan.FromSeconds(10));
 			Stopwatch stopwatchElapsed = Stopwatch.StartNew();
 			Stopwatch stopwatchUpdate = Stopwatch.StartNew();
 
+			remainingTime = threshold - stopwatchElapsed.Elapsed;
+
 			try
 			{
 				while (await timeCheck.WaitForNextTickAsync(Bot.AppData.cts.Token))
 				{
-					elapsed = stopwatchElapsed.Elapsed;
-					remainingTime = threshold - elapsed;
+					remainingTime = threshold - stopwatchElapsed.Elapsed;
 
 					if (remainingTime <= TimeSpan.Zero)
 					{
-						DiscordMember winner = await RandomCheck();
+						var winner = await RandomCheck();
 						string line;
 
 						if (winner != null)
 						{
 							sendNotification = true;
-							line = $"**The Winner is:** {winner.Mention}";
+							line = $"**The Winner is:** {winner}";
 						}
 						else line = "**A winner has not been chosen. No bidders!**";
 
@@ -58,14 +58,17 @@ namespace baseBot
 					}
 				}
 			}
-			catch (TaskCanceledException)
+			catch (OperationCanceledException)
 			{
+				Bot.AppData.TimePoll.TryAdd(_message.Id, remainingTime);
 				stopwatchElapsed.Stop();
 				stopwatchUpdate.Stop();
 				timeCheck.Dispose();
-
-				Bot.AppData.TimePoll.TryAdd(_message.Id, remainingTime);
 				return;
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine(ex.Message);
 			}
 
 			if (sendNotification)
@@ -82,6 +85,7 @@ namespace baseBot
 			stopwatchElapsed.Stop();
 			stopwatchUpdate.Stop();
 			timeCheck.Dispose();
+			Bot.AppData.ItemPoll.TryRemove(_message.Id, out _);
 			Bot.AppData.PollTask.TryTake(out _task);
 		}
 
@@ -114,27 +118,41 @@ namespace baseBot
 			}
 		}
 
-		private async Task<DiscordMember> RandomCheck()
+		private async Task<string> RandomCheck()
 		{
-			var omen = await Bot.Client.GetGuildAsync(1289323361427787808);
-			List<DiscordMember> list = new List<DiscordMember>();
-
-			if (Bot.AppData.ItemPoll.TryGetValue(_message.Id, out List<ulong> id))
+			if (Bot.AppData.ItemPoll.TryGetValue(_message.Id, out List<ulong> idList))
 			{
-				foreach (var item in id)
-				{
-					list.Add(await omen.GetMemberAsync(item));
-				}
-			}
+				if (idList.Count == 0) return null;
 
-			Bot.AppData	.ItemPoll.TryRemove(_message.Id, out _);
+				ulong winID = 0;
 
-			if (list.Count != 0)
-			{
 				lock (Bot.LockRandom)
 				{
-					return list[Bot.Random.Next(list.Count)];
-				}		
+					winID = idList[Bot.Random.Next(idList.Count)];
+				}
+
+				var omen = await Bot.Client.GetGuildAsync(1289323361427787808);
+
+				for (int i = 0; i < idList.Count; i++)
+				{
+					try
+					{				
+						var winner = await omen.GetMemberAsync(winID);
+						return $"**{winner.DisplayName}**";
+					}
+					catch (Exception ex)
+					{
+						Console.WriteLine(ex.Message);
+
+						if (idList.Count - 1 != i)
+						{
+							lock (Bot.LockRandom)
+							{
+								winID = idList[Bot.Random.Next(idList.Count)];
+							}
+						}
+					}
+				}
 			}
 
 			return null;

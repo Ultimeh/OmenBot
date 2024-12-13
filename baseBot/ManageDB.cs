@@ -69,7 +69,7 @@ namespace baseBot
 			{
 				var json = JsonSerializer.Serialize(Bot.AppData.TimePoll);
 				File.WriteAllText(PathTimePoll, json);
-				Console.WriteLine(Bot.AppData.TimePoll.Count + " Item polls saved");
+				if (Bot.AppData.TimePoll.Count != 0) Console.WriteLine(Bot.AppData.TimePoll.Count + " Item polls saved");
 			}
 			catch (Exception ex)
 			{
